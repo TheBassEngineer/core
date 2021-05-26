@@ -54,6 +54,7 @@ FLOWS = [
     "coronavirus",
     "daikin",
     "deconz",
+    "decora_wifi",
     "denonavr",
     "devolo_home_control",
     "dexcom",
