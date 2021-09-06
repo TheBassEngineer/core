@@ -1,6 +1,7 @@
 """Interfaces with the myLeviton API for Decora Smart WiFi products."""
 
 import logging
+from typing import cast
 
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
@@ -9,35 +10,41 @@ from homeassistant.components.light import (
     SUPPORT_TRANSITION,
     LightEntity,
 )
-from homeassistant.const import CONF_USERNAME
+from homeassistant.const import CONF_ENTITY_ID
+from homeassistant.helpers.entity_component import EntityComponent
 
-from .common import DecoraWifiEntity, DecoraWifiPlatform, decorawifisessions
+from .common import DecoraWifiEntity, DecoraWifiPlatform, SessionEntityNotFound
+from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
     """Set up Decora Wifi lights based on a config entry."""
-    # Retrieve the platform session from the reference stored in data.
-    email = entry.data[CONF_USERNAME]
-    session: DecoraWifiPlatform = decorawifisessions[email]
+    # Retrieve the platform session from the binary sensor entity component.
+    component: EntityComponent = hass.data[DOMAIN]
+    session_entity = component.get_entity(entry.data[CONF_ENTITY_ID])
+    session = None
+    if session_entity:
+        session = cast(DecoraWifiPlatform, session_entity)
+    else:
+        raise SessionEntityNotFound("Session entity not found.")
 
     if session:
         lights = session.lights
-
-    entities = []
-    if lights:
-        entities.append(DecoraWifiLight(light) for light in lights)
-    async_add_entities(entities, True)
+        entities = []
+        if lights:
+            for light in lights:
+                entities.append(DecoraWifiLight(light))
+        async_add_entities(entities, True)
 
 
 class DecoraWifiLight(DecoraWifiEntity, LightEntity):
     """Representation of a Decora WiFi switch."""
 
-    @property
-    def unique_id(self):
-        """Return the unique id of the switch."""
-        return self._unique_id
+    def __init__(self, device):
+        """Initialize the light object."""
+        super().__init__(device)
 
     @property
     def supported_features(self):
@@ -45,11 +52,6 @@ class DecoraWifiLight(DecoraWifiEntity, LightEntity):
         if self._switch.canSetLevel:
             return SUPPORT_BRIGHTNESS | SUPPORT_TRANSITION
         return 0
-
-    @property
-    def name(self):
-        """Return the display name of this switch."""
-        return self._switch.name
 
     @property
     def brightness(self):
