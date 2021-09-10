@@ -1,6 +1,7 @@
 """Interfaces with the myLeviton API for Decora Smart WiFi products."""
 
 import logging
+from typing import cast
 
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
@@ -38,21 +39,11 @@ class DecoraWifiLight(DecoraWifiEntity, LightEntity):
     """Representation of a Decora WiFi switch."""
 
     @property
-    def unique_id(self):
-        """Return the unique id of the switch."""
-        return self._unique_id
-
-    @property
     def supported_features(self):
         """Return supported features."""
         if self._switch.canSetLevel:
             return SUPPORT_BRIGHTNESS | SUPPORT_TRANSITION
         return 0
-
-    @property
-    def name(self):
-        """Return the display name of this switch."""
-        return self._switch.name
 
     @property
     def brightness(self):
